@@ -16,8 +16,15 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
+const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean);
 const corsOptions = {
-    origin:'http://localhost:5173',
+    origin:(origin, callback) => {
+        // Allow server-to-server requests and local dev on any Vite port.
+        if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+    },
     credentials:true
 }
 
@@ -36,9 +43,16 @@ app.get("/health", (_req, res) => {
     res.json({ ok: true });
 });
 
+const startServer = async () => {
+    const isDbConnected = await connectDB();
+    if (!isDbConnected) {
+        console.error("Server startup aborted because database connection failed.");
+        process.exit(1);
+    }
 
+    app.listen(PORT, () => {
+        console.log(`Server running at port ${PORT}`);
+    });
+};
 
-app.listen(PORT,()=>{
-    connectDB();
-    console.log(`Server running at port ${PORT}`);
-})
+startServer();
