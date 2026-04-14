@@ -11,8 +11,20 @@ import applicationRoute from "./routes/application.route.js";
 dotenv.config({});
 
 const app = express();
+const isProduction = process.env.NODE_ENV === "production";
+
+if (!process.env.SECRET_KEY) {
+    console.error("SECRET_KEY is not set. Add it in backend/.env (see backend/.env.example).");
+    process.exit(1);
+}
+
+if (isProduction && !process.env.FRONTEND_URL) {
+    console.error("FRONTEND_URL is required in production for CORS.");
+    process.exit(1);
+}
 
 // middleware
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
@@ -25,8 +37,9 @@ const corsOptions = {
         }
         return callback(new Error("Not allowed by CORS"));
     },
-    credentials:true
-}
+    credentials:true,
+    optionsSuccessStatus: 200
+};
 
 app.use(cors(corsOptions));
 
